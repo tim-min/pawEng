@@ -344,6 +344,9 @@ export class GameObject {
     }
 }
 
+// UiObject как отдельный вид gameObject'a. Нужен чтобы сцена отличала ui объекты от игровых и выдавала нужный worker рендера, 
+// в остальном ничем не отличаются
+
 export class UiObject extends GameObject{
     constructor(position=new Vector(0, 0), rotation=new Vector(0, 0), scale=new Vector(0.01, 0.01)) {
         super(position, rotation, scale);

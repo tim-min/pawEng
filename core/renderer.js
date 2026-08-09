@@ -160,13 +160,19 @@ export class Renderer {
         this.#ctx.rotate(angle);
     }
 
+    getObjectTransform(gameObject, uiSpace) {
+        const screenPos  = this.worldToScreenPosition(gameObject.worldPosition, uiSpace);
+        const screenSize = this.worldToScreenSize(gameObject.worldSize, uiSpace);
+        const screenRotation = this.worldToScreenRotation(gameObject.worldRotation, uiSpace);
+
+        return [screenPos, screenSize, screenRotation];
+    }
+
     drawRect(gameObject, color, uiSpace=false) {
         this.#ctx.save()
         this.#ctx.fillStyle = color;
 
-        const screenPos  = this.worldToScreenPosition(gameObject.worldPosition, uiSpace);
-        const screenSize = this.worldToScreenSize(gameObject.worldSize, uiSpace);
-        const screenRotation = this.worldToScreenRotation(gameObject.worldRotation, uiSpace);
+        const [screenPos, screenSize, screenRotation] = this.getObjectTransform(gameObject, uiSpace);
 
         this.#ctx.translate(screenPos.x, screenPos.y);
         this.#ctx.rotate(screenRotation);
@@ -175,9 +181,7 @@ export class Renderer {
     }
 
     drawEllipse(gameObject, color, startAngle=0, endAngle=360, uiSpace=false) {
-        const screenPos  = this.worldToScreenPosition(gameObject.worldPosition, uiSpace);
-        const screenSize = this.worldToScreenSize(gameObject.worldSize, uiSpace);
-        const screenRotation = this.worldToScreenRotation(gameObject.worldRotation, uiSpace);
+        const [screenPos, screenSize, screenRotation] = this.getObjectTransform(gameObject, uiSpace);
 
         this.#ctx.beginPath();
         this.#ctx.ellipse(screenPos.x, screenPos.y, screenSize.x, screenSize.y, screenRotation, startAngle*Math.PI/180, endAngle*Math.PI/180);
@@ -190,9 +194,7 @@ export class Renderer {
     drawImage(gameObject, img, uiSpace=false) {
         this.#ctx.save()
 
-        const screenPos  = this.worldToScreenPosition(gameObject.worldPosition, uiSpace);
-        const screenSize = this.worldToScreenSize(gameObject.worldSize, uiSpace);
-        const screenRotation = this.worldToScreenRotation(gameObject.worldRotation, uiSpace);
+        const [screenPos, screenSize, screenRotation] = this.getObjectTransform(gameObject, uiSpace);
 
         this.#ctx.translate(screenPos.x, screenPos.y);
         this.#ctx.rotate(screenRotation);
@@ -203,9 +205,7 @@ export class Renderer {
     drawImage(gameObject, img, sx, sy, sw, sh, uiSpace=false) {
         this.#ctx.save()
 
-        const screenPos  = this.worldToScreenPosition(gameObject.worldPosition, uiSpace);
-        const screenSize = this.worldToScreenSize(gameObject.worldSize, uiSpace);
-        const screenRotation = this.worldToScreenRotation(gameObject.worldRotation, uiSpace);
+        const [screenPos, screenSize, screenRotation] = this.getObjectTransform(gameObject, uiSpace);
 
         this.#ctx.translate(screenPos.x, screenPos.y);
         this.#ctx.rotate(screenRotation);
@@ -229,11 +229,14 @@ export class RendererWorker {
     #uiSpace;
 
     constructor(original, uiSpace=false) {
-        this.#originalRenderer = original;
-        this.#uiSpace = uiSpace;
+        this.#originalRenderer = original; // Основной рендерер
+        this.#uiSpace = uiSpace; // true если этот рендерер обрабатывает ui объект. Просто передаем этот же флаг в вызовах методов renderer
     }
 
     destroy() {
+        // Для безопасного прекращения работы удаляем ссылку на основной рендерер
+        // Убивать воркер нужно после вызова onRender у объекта, чтобы в дальнейшем объект не мог пользоваться им вне этого метода
+
         this.#originalRenderer = null;
     }
 
@@ -246,23 +249,27 @@ export class RendererWorker {
     //     this.#originalRenderer.drawRect(position, size, color, this.#uiSpace);
     // }
 
-    drawRect(gameObject, color) {
+    aliveCheck() {
         if (!this.isAlive()) throw Error("Renderer worker is no longer available. You can use renderer only in GameObject.onRender()")
+    }
+
+    drawRect(gameObject, color) {
+        this.aliveCheck();
         this.#originalRenderer.drawRect(gameObject, color, this.#uiSpace);
     }
 
     drawEllipse(gameObject, color, startAngle=0, endAngle=360) {
-        if (!this.isAlive()) throw Error("Renderer worker is no longer available. You can use renderer only in GameObject.onRender()")
+        this.aliveCheck();
         this.#originalRenderer.drawEllipse(gameObject, color, startAngle, endAngle, this.#uiSpace);
     }
 
     drawImage(gameObject, img) {
-        if (!this.isAlive()) throw Error("Renderer worker is no longer available. You can use renderer only in GameObject.onRender()")
+        this.aliveCheck();
         this.#originalRenderer.drawImage(gameObject, img, this.#uiSpace);
     }
 
     drawImage(gameObject, img, sx, sy, sw, sh) {
-        if (!this.isAlive()) throw Error("Renderer worker is no longer available. You can use renderer only in GameObject.onRender()")
+        this.aliveCheck();
         this.#originalRenderer.drawImage(gameObject, img, sx, sy, sw, sh, this.#uiSpace);
     }
 }

@@ -72,7 +72,7 @@ export class App {
         return newWorker;
     }
 
-    getUiRendererWorker() {
+    getUiRendererWorker() { // Отдельный новый прокси-рендерер для ui объектов
         let newWorker = new RendererWorker(this.#renderer, true);
         return newWorker;
     }
@@ -339,11 +339,17 @@ export class Game {
         this.#time.sceneLoaded();
     }
 
-    setCamera(cameraObject) {
-        if (!(cameraObject instanceof GameObject)) throw new Error("Camera object must be instance of paw.GameObject");
-        if (cameraObject.getModule(Camera) == undefined) throw new Error("Camera object mus contain Camera module");
+    get activeScene() {
+        return this.#activeScene;
+    }
 
-        this.#app.renderer.linkCamera(cameraObject);
+    setCamera(cameraObject) {
+        // if (!(cameraObject instanceof GameObject)) throw new Error("Camera object must be instance of paw.GameObject");
+        // if (cameraObject.getModule(Camera) == undefined) throw new Error("Camera object mus contain Camera module");
+
+        // this.#app.renderer.linkCamera(cameraObject);
+
+        console.log("WARNING: setCamera moved to scene, use scene.setCamera(cameraObject) to link new camera to each scene instead")
     }
 
     get mouseController() {

@@ -1,4 +1,4 @@
-import { GameObject, UiObject } from "./gameObject.js";
+import { GameObject, UiObject, Camera } from "./gameObject.js";
 import { App, GameContext } from './game.js';
 import { RendererQueue } from "./renderer.js";
 import { Vector } from './vector.js';
@@ -176,6 +176,7 @@ export class Scene {
     #gameContext;
     #rendererQueue;
     #mapNet;
+    #activeCamera;
 
     constructor(name) {
         this.#name = name;
@@ -268,6 +269,9 @@ export class Scene {
     async renderGameObject(gameObject) { // Тут отдаем объекту прокси-рендерер и затем удаляем чтобы объект не смог использовать его после сохранения
         let worker;
 
+        // Создаётся 2 отдельных worker'а для рендера объекта для того чтобы вызовы рендера у ui объектов и у обычных объектов были одинаковые, 
+        // тут мы просто сами ставим флажок "isUiSpace" в worker'е (см. app)
+
         if (gameObject instanceof UiObject) {
             worker = this.#app.getUiRendererWorker();
         } else {
@@ -354,6 +358,9 @@ export class Scene {
             gameObject.startModules();
         });
 
+        if (this.#activeCamera != undefined && this.#activeCamera != null)
+            this.#app.renderer.linkCamera(this.#activeCamera);
+
         this.#isLoaded = true;
 
         // app.canvas.addEventListener("mousedown", this.mouseClickEvent.bind(this));
@@ -382,5 +389,19 @@ export class Scene {
 
     get app() {
         return this.#app;
+    }
+
+    setCamera(cameraObject) {
+        if (!(cameraObject instanceof GameObject)) throw new Error("Camera object must be instance of paw.GameObject");
+        if (cameraObject.getModule(Camera) == undefined) throw new Error("Camera object mus contain Camera module");
+
+        this.#activeCamera = cameraObject;
+        
+        if (this.#isLoaded) 
+            this.#app.renderer.linkCamera(cameraObject);
+    }
+
+    get activeCamera() {
+        return this.#activeCamera;
     }
 }
