@@ -431,6 +431,10 @@ export class Camera extends Module {
         this.#background_color = background_color;
     }
 
+    worldToScreenCoord(coord, screenScale) {
+        return coord * screenScale * this.#zoom;
+    }
+
     worldToScreenPosition(vector, screenScale, worldSize) {
         const dx = vector.x - this.owner.worldPosition.x;
         const dy = vector.y - this.owner.worldPosition.y;

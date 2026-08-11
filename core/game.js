@@ -53,8 +53,15 @@ export class App {
 
     constructor(width, height, renderer, scale) {
         this.#canvas = document.createElement('canvas');
-        this.#canvas.width = width;
-        this.#canvas.height = height;
+
+        // Увеличиваем холст во столько раз сколько плотность пикселей на экране пользователя
+        const cvsToScale = window.devicePixelRatio || 1;
+        this.#canvas.width = width * cvsToScale;
+        this.#canvas.height = height * cvsToScale;
+
+        // Сжимаем реальный размер окна обратно
+        this.#canvas.style.width = width + "px";
+        this.#canvas.style.height = height + "px";
 
         this.#renderer = new renderer(this.#canvas);
     }

@@ -70,8 +70,8 @@ export class Renderer {
     constructor(cvs, worldHeight = 100) {
         this.#cvs = cvs;
         this.#ctx = cvs.getContext('2d');
-        this.#worldHeight = worldHeight
-        this.#worldWidth = worldHeight * (cvs.width / cvs.height)
+        this.#worldHeight = worldHeight;
+        this.#worldWidth = worldHeight * (cvs.width / cvs.height);
     }
 
     set mapNet(mapNet) {
@@ -135,6 +135,12 @@ export class Renderer {
         if (this.#workingCamera == null || uiSpace == true) return new Vector(vector.x * this.scale, vector.y * this.scale);
 
         return this.#workingCamera.getModule(Camera).worldToScreenSize(vector, this.scale);
+    }
+
+    worldToScreenCoord(coord, uiSpace=false) {
+        if (this.#workingCamera == null || uiSpace == true) return coord * this.scale;
+
+        return this.#workingCamera.getModule(Camera).worldToScreenCoord(coord, this.scale);
     }
 
     worldToScreenRotation(deg, uiSpace=false) {
@@ -213,6 +219,30 @@ export class Renderer {
         this.#ctx.restore();
     }
 
+    drawText(gameObject, font, text, size, uiSpace=false) {
+        const [screenPos, screenSize, screenRotation] = this.getObjectTransform(gameObject, uiSpace);
+
+        this.#ctx.font = font;
+
+        // Актуальный размер шрифта в пикселях 
+        const match = this.#ctx.font.match(/([\d.]+)px/);
+        const currentFontSize = match ? parseFloat(match[1]) : 0;
+
+        // Считаем на сколько его нужно увеличить относительно заданного размера в уе
+        const screenFontSize = this.worldToScreenCoord(size); // Размер из уе в пиксели
+        const scale = screenFontSize / currentFontSize;
+
+        
+        const textHeight = this.#ctx.measureText(text).fontBoundingBoxAscent + this.#ctx.measureText(text).fontBoundingBoxDescent;
+
+        this.#ctx.save();
+        this.#ctx.scale(scale, scale);
+
+        this.#ctx.fillStyle = "white";
+        this.#ctx.fillText(text, screenPos.x / scale, screenPos.y / scale + textHeight);
+        this.#ctx.restore();
+    }
+
     clearAll() {
         if (this.#workingCamera == null) this.#ctx.fillStyle = "purple";
         else this.#ctx.fillStyle = this.#workingCamera.getModule(Camera).background_color;
@@ -271,5 +301,10 @@ export class RendererWorker {
     drawImage(gameObject, img, sx, sy, sw, sh) {
         this.aliveCheck();
         this.#originalRenderer.drawImage(gameObject, img, sx, sy, sw, sh, this.#uiSpace);
+    }
+
+    drawText(gameObject, font, text, size) {
+        this.aliveCheck();
+        this.#originalRenderer.drawText(gameObject, font, text, size, this.#uiSpace);
     }
 }

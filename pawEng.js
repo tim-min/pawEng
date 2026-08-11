@@ -7,4 +7,5 @@ export { Ellipse } from './core/modules/ellipse.js';
 export { ImageRenderer } from './core/modules/image.js'; 
 export { Sprite } from './core/modules/sprite.js'; 
 export { Animator } from './core/modules/animator.js'; 
+export { Text } from './core/modules/text.js';
 export { Game } from './core/game.js';
