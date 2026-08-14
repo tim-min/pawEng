@@ -2,6 +2,7 @@ import { GameObject, UiObject, Camera } from "./gameObject.js";
 import { App, GameContext } from './game.js';
 import { RendererQueue } from "./renderer.js";
 import { Vector } from './vector.js';
+import { getZoneTypes } from "./zones.js";
 
 
 class MapNet {
@@ -311,11 +312,16 @@ export class Scene {
             
             if (gameObject instanceof UiObject) {
 
-                if (position.x >= gameObject.worldPosition.x-gameObject.worldSize.x/2 && position.x <= gameObject.worldPosition.x+gameObject.worldSize.x/2 && 
-                    position.y >= gameObject.worldPosition.y-gameObject.worldSize.y/2 && position.y <= gameObject.worldPosition.y+gameObject.worldSize.y/2) {
-                    gameObject.onClick();
-                }
+                // if (position.x >= gameObject.worldPosition.x-gameObject.worldSize.x/2 && position.x <= gameObject.worldPosition.x+gameObject.worldSize.x/2 && 
+                //     position.y >= gameObject.worldPosition.y-gameObject.worldSize.y/2 && position.y <= gameObject.worldPosition.y+gameObject.worldSize.y/2) {
+                //     gameObject.onClick();
+                // }
 
+                let clickZones = gameObject.getZones(getZoneTypes().CLICK);
+
+                clickZones.forEach(zone => {
+                    zone.containsPoint(gameObject.worldPosition, position, true);
+                });
             }
 
         });

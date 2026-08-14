@@ -1,4 +1,4 @@
-import { Module } from "../gameObject.js";
+import { Module } from "../../gameObject.js";
 
 class AnimationState { // Структура для хранения этапа анимации. 
     constructor(timePoint, action) {

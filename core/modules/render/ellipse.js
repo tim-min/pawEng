@@ -1,5 +1,5 @@
-import { Module } from "../gameObject.js";
-import { Event } from "../game.js";
+import { Module } from "../../gameObject.js";
+import { Event } from "../../game.js";
 
 
 export class Ellipse extends Module {

@@ -67,11 +67,27 @@ export class Renderer {
     #workingCamera;
     #mapNet = null;
 
-    constructor(cvs, worldHeight = 100) {
+    constructor(cvs, startWidth, startHeight, worldHeight = 100) {
         this.#cvs = cvs;
         this.#ctx = cvs.getContext('2d');
+
+        this.resizeCanvas(startWidth, startHeight);
+
         this.#worldHeight = worldHeight;
         this.#worldWidth = worldHeight * (cvs.width / cvs.height);
+    }
+
+    resizeCanvas(width, height) {
+        // Увеличиваем холст во столько раз сколько плотность пикселей на экране пользователя
+        const cvsToScale = window.devicePixelRatio || 1;
+        this.#cvs.width = width * cvsToScale;
+        this.#cvs.height = height * cvsToScale;
+
+        // Сжимаем реальный размер окна обратно
+        this.#cvs.style.width = width + "px";
+        this.#cvs.style.height = height + "px";
+
+        this.#ctx.scale(cvsToScale, cvsToScale); 
     }
 
     set mapNet(mapNet) {
@@ -88,9 +104,7 @@ export class Renderer {
     }
 
     resize(newWidth, newHeight) { // Обязательная обработка ресайза окна
-        this.#cvs.width = newWidth
-        this.#cvs.height = newHeight
-        this.#ctx = this.#cvs.getContext('2d')
+        this.resizeCanvas(newWidth, newHeight);
 
         // Считаем новую компоненту длины экрана по принципу: 1 текущая высота экрана в пикселях = this.worldHeight => 1 текующая длина = this.worldHeight * (длина/высота)
         this.#worldWidth = this.#worldHeight * (newWidth / newHeight)
@@ -174,15 +188,28 @@ export class Renderer {
         return [screenPos, screenSize, screenRotation];
     }
 
-    drawRect(gameObject, color, uiSpace=false) {
+    setDottedLine(hatchLen=10, spaceLen=5, lineWidth=3, color='white') {
+        this.#ctx.setLineDash([hatchLen, spaceLen]); 
+        this.#ctx.lineWidth = lineWidth;
+        this.#ctx.strokeStyle = color;
+    }
+
+
+    drawRect(gameObject, color, fill=true, dotted=false, uiSpace=false) {
         this.#ctx.save()
         this.#ctx.fillStyle = color;
+        this.#ctx.strokeStyle = color;
+
+        if (dotted) this.setDottedLine(color=color);
 
         const [screenPos, screenSize, screenRotation] = this.getObjectTransform(gameObject, uiSpace);
 
         this.#ctx.translate(screenPos.x, screenPos.y);
         this.#ctx.rotate(screenRotation);
-        this.#ctx.fillRect(-screenSize.x/2, -screenSize.y/2, screenSize.x, screenSize.y);
+        
+        if (fill) this.#ctx.fillRect(-screenSize.x/2, -screenSize.y/2, screenSize.x, screenSize.y);
+        else this.#ctx.strokeRect(-screenSize.x/2, -screenSize.y/2, screenSize.x, screenSize.y);
+        
         this.#ctx.restore();
     }
 
@@ -238,8 +265,13 @@ export class Renderer {
         this.#ctx.save();
         this.#ctx.scale(scale, scale);
 
+        this.#ctx.translate(screenPos.x / scale, screenPos.y / scale + textHeight);
+        this.#ctx.textAlign = "center";
+        this.#ctx.textBaseline = "middle";
+        this.#ctx.rotate(screenRotation);
+
         this.#ctx.fillStyle = "white";
-        this.#ctx.fillText(text, screenPos.x / scale, screenPos.y / scale + textHeight);
+        this.#ctx.fillText(text, 0, 0);
         this.#ctx.restore();
     }
 
@@ -283,9 +315,9 @@ export class RendererWorker {
         if (!this.isAlive()) throw Error("Renderer worker is no longer available. You can use renderer only in GameObject.onRender()")
     }
 
-    drawRect(gameObject, color) {
+    drawRect(gameObject, color, fill=true, dotted=false,) {
         this.aliveCheck();
-        this.#originalRenderer.drawRect(gameObject, color, this.#uiSpace);
+        this.#originalRenderer.drawRect(gameObject, color, fill, dotted, this.#uiSpace);
     }
 
     drawEllipse(gameObject, color, startAngle=0, endAngle=360) {

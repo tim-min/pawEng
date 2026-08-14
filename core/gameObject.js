@@ -2,7 +2,8 @@ import { EventQueue } from "./game.js";
 import { Event } from "./game.js";
 import { Vector } from "./vector.js";
 import { ReadOnlyTime } from "./time.js";
-import {App, GameContext} from './game.js';
+import { App, GameContext } from './game.js';
+import { getZoneTypes, Zone } from './zones.js';
 
 class ObjectDestroyEvent extends Event {
     constructor(creator) {
@@ -30,10 +31,6 @@ export class GameObject {
     #modules;
     #time;
     #gameContext;
-    #position;
-    #rotation;
-    #scale;
-    #size;
     #parent;
     #children;
     #renderLayer
@@ -41,18 +38,14 @@ export class GameObject {
     #oldWorldPosition
     #_initState
     #isActive = true
+    #zones;
 
     constructor(position=new Vector(0, 0), rotation=0, size = new Vector(0.01, 0.01), scale=new Vector(1, 1)) {
-        this.#position = position;
-        this.#rotation = rotation;
-        this.#scale = scale;
-        this.#size = size;
-
         this.transform = {
-            position: this.#position,
-            rotation: this.#rotation,
-            scale: this.#scale,
-            size: this.#size
+            position: position,
+            rotation: rotation,
+            scale: scale,
+            size: size
         }
 
         this.#oldWorldPosition = this.worldPosition;
@@ -64,6 +57,8 @@ export class GameObject {
         this.#children = [];
 
         this.#renderLayer = 0;
+
+        this.#zones = new Map();
     }
 
     setActive(isActive) {
@@ -114,6 +109,8 @@ export class GameObject {
         result.y *= this.transform.scale.y;
 
         return result;
+
+        
     }
 
     get worldSize() {
@@ -317,7 +314,7 @@ export class GameObject {
         return this.#gameContext;
     }
 
-    renderAll(renderer) { // Метод запускает событие onRender у всех привязонных модулей, передавая renderer
+    renderAll(renderer) { // Метод запускает событие onRender у всех привязанных модулей, передавая renderer
         this.#modules.forEach(module => {
             if (module.isActive) module.onRender(renderer);
         });
@@ -342,12 +339,33 @@ export class GameObject {
             module.onSceneCanceled();
         });
     }
+
+    getZones(zoneType) {
+        let zones = this.#zones.get(zoneType);
+        return (zones != undefined) ? zones : [];
+    }
+
+    addZone(zoneType, zone) {
+        if (!(zone instanceof Zone)) throw Error("You can only add object as zone if it is instance of paw.Zone");
+
+        const currentZoneTypes = getZoneTypes();
+
+        if (!Object.entries(currentZoneTypes).map(([key, value]) => value).includes(zoneType)) throw Error("You are trying to add new zone with a type that you did not register, use paw.registerZoneType");
+
+        if (this.#zones.get(zoneType) == undefined)
+            this.#zones.set(zoneType, [zone]);
+        else {
+            this.#zones.get(zoneType).add(zone);
+        }
+    }
 }
 
 // UiObject как отдельный вид gameObject'a. Нужен чтобы сцена отличала ui объекты от игровых и выдавала нужный worker рендера, 
 // в остальном ничем не отличаются
 
 export class UiObject extends GameObject{
+    #clickZone;
+
     constructor(position=new Vector(0, 0), rotation=new Vector(0, 0), scale=new Vector(0.01, 0.01)) {
         super(position, rotation, scale);
     }

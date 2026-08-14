@@ -1,4 +1,4 @@
-import { Module } from "../gameObject.js";
+import { Module } from "../../gameObject.js";
 
 
 export class ImageRenderer extends Module {
