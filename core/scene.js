@@ -1,7 +1,7 @@
 import { GameObject, UiObject, Camera } from "./gameObject.js";
 import { App, GameContext } from './game.js';
 import { RendererQueue } from "./renderer.js";
-import { Vector } from './vector.js';
+import { Vector } from './math/vector.js';
 import { getZoneTypes } from "./zones.js";
 
 
@@ -176,6 +176,7 @@ export class Scene {
     #isLoaded;
     #gameContext;
     #rendererQueue;
+    #uiRendererQueue;
     #mapNet;
     #activeCamera;
 
@@ -183,6 +184,7 @@ export class Scene {
         this.#name = name;
         this.#gameObjects = [];
         this.#rendererQueue = new RendererQueue();
+        this.#uiRendererQueue = new RendererQueue();
 
         this.#mapNet = new MapNet();
     }
@@ -228,14 +230,17 @@ export class Scene {
             gameObject.loopAll();
             if (!(gameObject instanceof UiObject)) this.#mapNet.updateObject(gameObject);
             // this.renderGameObject(gameObject);
-            // this.setObjectToRenderQueue(gameObject);
+            // this.#setObjectToRenderQueue(gameObject);
         });
 
         this.updateRendererQueue();
         await this.renderObjects();
+        await this.renderUiObjects();
     }
 
     updateRendererQueue() {
+        this.#rendererQueue.clear();
+
         let cellsInScreenX = Math.ceil(this.#app.renderer.screenSize.x / (this.#mapNet.cellSize * this.#app.renderer.scale));
         let cellsInScreenY = Math.ceil(this.#app.renderer.screenSize.y / (this.#mapNet.cellSize * this.#app.renderer.scale));
 
@@ -245,25 +250,42 @@ export class Scene {
         objectsToRender.forEach(gameObject => {
             if (!gameObject.isActive) return;
 
-            this.setObjectToRenderQueue(gameObject);
+            this.#setObjectToRenderQueue(gameObject);
         });
 
-        this.#gameObjects.filter( object => object instanceof UiObject).forEach(object => {
-            this.setObjectToRenderQueue(object);
-        });
+        // this.#gameObjects.filter( object => object instanceof UiObject).forEach(object => {
+        //     this.#setObjectToRenderQueue(object);
+        // });
     }
 
-    setObjectToRenderQueue(object) {
+    #setObjectToRenderQueue(object) {
         this.#rendererQueue.push(object);
     }
 
-    renderObjects() {
-        let next = this.#rendererQueue.pop();
+    #setObjectToUiRenderQueue(object) {
+        this.#uiRendererQueue.push(object);
+    }
 
-        while (next != null) {
-            //console.log("Rendering gameObject " + next.renderLayer);
-            this.renderGameObject(next);
-            next = this.#rendererQueue.pop();
+    renderObjects() {
+        // let next = this.#rendererQueue.pop();
+
+        // while (next != null) {
+        //     //console.log("Rendering gameObject " + next.renderLayer);
+        //     this.renderGameObject(next);
+        //     next = this.#rendererQueue.pop();
+        // }
+
+        let objects = this.#rendererQueue.getSortedArray();
+
+        for (let x=0; x<objects.length; x++)
+            this.renderGameObject(objects[x]);
+    }
+
+    renderUiObjects() {
+        let objects = this.#uiRendererQueue.getSortedArray();
+
+        for (let x=0; x<objects.length; x++) {
+            this.renderGameObject(objects[x]);
         }
     }
 
@@ -290,6 +312,9 @@ export class Scene {
 
         this.#gameObjects.push(gameObject);
 
+        if (gameObject instanceof UiObject)
+             this.#setObjectToUiRenderQueue(gameObject);
+
         if (!this.#isLoaded) return;
 
         gameObject.setEventQueue(this.#eventQueue);
@@ -307,24 +332,52 @@ export class Scene {
         this.#gameObjects = [];
     }
 
+    checkClickOnUiObjects(position) {
+        let objects = this.#uiRendererQueue.getSortedArray();
+
+        for (let x=objects.length-1; x>-1; x--) {
+            let gameObject = objects[x];
+
+            let clickZones = gameObject.getZones(getZoneTypes().CLICK);
+            let isClicked = false;
+
+            clickZones.forEach(zone => {
+                let result = zone.containsPoint(gameObject.worldPosition, position, true);
+                if (result) isClicked = true;
+            });
+
+            if (isClicked) break;
+        }
+    }
+
     mouseClickedAt(position) {
-        this.#gameObjects.forEach(gameObject => {
-            
-            if (gameObject instanceof UiObject) {
+        // console.log(position)
+        // let objects = [ ... this.#gameObjects ].sort((x, y) => y.renderLayer - x.renderLayer);
 
-                // if (position.x >= gameObject.worldPosition.x-gameObject.worldSize.x/2 && position.x <= gameObject.worldPosition.x+gameObject.worldSize.x/2 && 
-                //     position.y >= gameObject.worldPosition.y-gameObject.worldSize.y/2 && position.y <= gameObject.worldPosition.y+gameObject.worldSize.y/2) {
-                //     gameObject.onClick();
-                // }
+        // for (let x=objects.length-1; x>0; x--) {
+        //     let gameObject = objects[x];
 
-                let clickZones = gameObject.getZones(getZoneTypes().CLICK);
+        //     if (gameObject instanceof UiObject) {
 
-                clickZones.forEach(zone => {
-                    zone.containsPoint(gameObject.worldPosition, position, true);
-                });
-            }
+        //         // if (position.x >= gameObject.worldPosition.x-gameObject.worldSize.x/2 && position.x <= gameObject.worldPosition.x+gameObject.worldSize.x/2 && 
+        //         //     position.y >= gameObject.worldPosition.y-gameObject.worldSize.y/2 && position.y <= gameObject.worldPosition.y+gameObject.worldSize.y/2) {
+        //         //     gameObject.onClick();
+        //         // }
 
-        });
+        //         let clickZones = gameObject.getZones(getZoneTypes().CLICK);
+        //         let isClicked = false;
+
+        //         clickZones.forEach(zone => {
+        //             let result = zone.containsPoint(gameObject.worldPosition, position, true);
+        //             if (result) isClicked = true;
+        //         });
+                
+        //         if (isClicked) break;
+        //     }
+        // }
+
+        // For Ui objects only:
+        this.checkClickOnUiObjects(position);
     }
 
     removeGameObject(gameObject) {
@@ -409,5 +462,9 @@ export class Scene {
 
     get activeCamera() {
         return this.#activeCamera;
+    }
+
+    get gameContext() {
+        return this.#gameContext;
     }
 }

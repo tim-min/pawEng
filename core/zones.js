@@ -2,7 +2,7 @@
 // заключенной внутри квадрата и вообще любым замкнутым пространством. 
 // Используются для подсчета коллизий, кликов и т.п
 
-import { Vector } from "./vector.js";
+import { Vector } from "./math/vector.js";
 
 
 // Обозначим типы зон для того чтобы не нагружать движок проверкой каждой зоны на объекте при любом действии.
@@ -39,8 +39,10 @@ export class Zone {
         if (typeof triggerFunction != "function") throw Error("You can only set object which type is 'function' as zone trigger function");
     }
 
-    changeTriggerFunction(newTriggerFunction) {
+    changeTriggerFunction(newTriggerFunction, newArgs) {
         this.checkTriggerFunction(newTriggerFunction);
+        this.#triggerFunction = newTriggerFunction;
+        this.#triggerFunctionArgs = newArgs;
     }
 
     checkVector(vector) {
@@ -75,6 +77,11 @@ export class SquareZone extends Zone {
             this.callTriggerFunction();
 
         return result;
+    }
+
+    changeSize(newWidth, newHeight) {
+        this.#width = newWidth;
+        this.#height = newHeight;
     }
 }
 

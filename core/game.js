@@ -2,7 +2,7 @@ import { Scene } from "./scene.js";
 import { GameObject, Camera } from "./gameObject.js";
 import { Time, ReadOnlyTime } from './time.js'
 import { Renderer, RendererWorker } from "./renderer.js";
-import { Vector } from './vector.js';
+import { Vector } from './math/vector.js';
 
 
 export class Event {

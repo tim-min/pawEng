@@ -1,4 +1,4 @@
-import { Vector } from "./vector.js";
+import { Vector } from "./math/vector.js";
 import { Camera, GameObject } from './gameObject.js';
 
 export class RendererQueue {
@@ -30,27 +30,42 @@ export class RendererQueue {
         //     }
         // }
 
-        this.#objects.push(object);
-    }
+        let ind = this.#objects.findIndex(x => x.renderLayer < object.renderLayer);
 
-    minRenderLayerObjectId() {
-        let result = 0;
-
-        for (let x=0; x<this.#objects.length; x++) {
-            if (this.#objects[x].renderLayer < this.#objects[result].renderLayer) result = x;
+        if (ind === -1) {
+            this.#objects.push(object);
+        } else {
+            this.#objects.splice(ind, 0, object);
         }
 
-        return result;
+        // this.#objects.push(object);
     }
+
+    // minRenderLayerObjectId() {
+    //     let result = 0;
+
+    //     for (let x=0; x<this.#objects.length; x++) {
+    //         if (this.#objects[x].renderLayer < this.#objects[result].renderLayer) result = x;
+    //     }
+
+    //     return result;
+    // }
 
     pop() {
         if (this.#objects.length == 0) return null;
 
-        let nextId = this.minRenderLayerObjectId();
-        let nextObject = this.#objects[nextId];
-        this.#objects.splice(nextId, 1);
+        // let nextId = this.minRenderLayerObjectId();
+        // let nextObject = this.#objects[nextId];
+        // this.#objects.splice(nextId, 1);
 
-        return nextObject;
+        let result = this.#objects[this.#objects.length-1];
+        this.#objects.splice(this.#objects.length-1, 1);
+
+        return result;
+    }
+
+    getSortedArray() {
+        return this.#objects;
     }
 
     clear() {
@@ -74,7 +89,7 @@ export class Renderer {
         this.resizeCanvas(startWidth, startHeight);
 
         this.#worldHeight = worldHeight;
-        this.#worldWidth = worldHeight * (cvs.width / cvs.height);
+        this.#worldWidth = worldHeight * (this.#cvs.width / this.#cvs.height);
     }
 
     resizeCanvas(width, height) {
@@ -88,6 +103,7 @@ export class Renderer {
         this.#cvs.style.height = height + "px";
 
         this.#ctx.scale(cvsToScale, cvsToScale); 
+        this.#ctx.save();
     }
 
     set mapNet(mapNet) {
@@ -112,7 +128,7 @@ export class Renderer {
 
     get scale() {
         // Текущее отношение (сколько пикселей реального холста в 1 единице координатной системы)
-        return this.#cvs.width / this.#worldWidth
+        return this.#cvs.width / this.#worldWidth / (window.devicePixelRatio || 1)
     }
 
     get worldSize() {

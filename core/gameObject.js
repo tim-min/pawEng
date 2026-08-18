@@ -1,6 +1,6 @@
 import { EventQueue } from "./game.js";
 import { Event } from "./game.js";
-import { Vector } from "./vector.js";
+import { Vector } from "./math/vector.js";
 import { ReadOnlyTime } from "./time.js";
 import { App, GameContext } from './game.js';
 import { getZoneTypes, Zone } from './zones.js';

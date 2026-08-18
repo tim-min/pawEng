@@ -13,7 +13,7 @@ export default class HeaderText extends paw.UiObject {
     }
 }
 
-export class GreenButton extends paw.UiObject {
+export class Button extends paw.UiObject {
     constructor(position, rotation, scale, onclickfunc) {
         super(position, rotation, scale);
 
