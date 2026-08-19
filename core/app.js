@@ -1,4 +1,5 @@
-import { Renderer, RendererWorker } from "./render/renderer.js";
+import { Renderer } from "./render/renderer.js";
+import { RendererWorker } from "./render/rendererWorker.js";
 
 export class App {
     #canvas
