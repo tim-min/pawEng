@@ -1,4 +1,4 @@
-# pawEng ![Logo](./logo.png)
+# pawEng <img src="./logo.png" alt="Logo" width="64">
 ---
 
 Game engine written in JavaScript. Created to be completely scalable, allowing the developer to extend functionality by inheriting base entities and overriding their behavior
