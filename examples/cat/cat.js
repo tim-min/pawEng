@@ -1,19 +1,19 @@
 import * as paw from '../../pawEng.js'
 
 
-export default class Cat extends paw.GameObject {
+export default class Cat extends paw.entities.GameObject {
     constructor(position, rotation, scale) {
         super(position, rotation, scale);
 
         // Задаем модуль анимации и модуль камеры
-        this.animator = this.addModule(new paw.Animator());
-        this.cameraModule = this.addModule(new paw.Camera("green"));
+        this.animator = this.addModule(new paw.modules.Animator());
+        this.cameraModule = this.addModule(new paw.modules.Camera("green"));
         
         // Устанавливаем модуль спрайтов, сразу явно задаем общее кол-во кадров, кол-во столбцов и строк
         this.totalFrames = 5;
         this.columns = 4;
         this.rows = 2
-        this.sprite = this.addModule(new paw.Sprite('cat.png', this.columns, this.rows));
+        this.sprite = this.addModule(new paw.modules.render.Sprite('cat.png', this.columns, this.rows));
 
         // Задаем поля, которые пригодятся в работе с аниматором
         this.currentFrame = 0 // Текущий кадр
@@ -59,7 +59,7 @@ export default class Cat extends paw.GameObject {
     	// Выполняется каждую итерацию игрового цикла
 
     	// Двигаем объект согласно текущим направлениям
-        this.transform.position.add(new paw.Vector(this.xDir * this.speed * this.time.deltaTime(), this.yDir * this.speed * this.time.deltaTime()));
+        this.transform.position.add(new paw.math.Vector(this.xDir * this.speed * this.time.deltaTime(), this.yDir * this.speed * this.time.deltaTime()));
 
         // Обозначаем условную область за которую не может выйти объект, в данном случае её размерами будут размеры окна
         if (this.transform.position.x > (this.gameContext.worldSize.x - this.worldSize.x/2) || this.transform.position.x < this.worldSize.x/2) {

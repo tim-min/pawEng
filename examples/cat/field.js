@@ -1,10 +1,10 @@
 import * as paw from '../../pawEng.js'
 
-export default class Field extends paw.GameObject {
+export default class Field extends paw.entities.GameObject {
     constructor(position, rotation, scale, color) {
         super(position, rotation, scale);
         this.color = color;
-        this.square = this.addModule(new paw.Square(color));
+        this.square = this.addModule(new paw.modules.render.Square(color));
     }
 
     start() {

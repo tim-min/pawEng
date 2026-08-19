@@ -3,6 +3,8 @@ export class Time {
     #timeFrameStarted = 0;
     #sceneLoadedTime;
 
+    constructor() {}
+
     static maxDeltaTime = 100;
 
     deltaTime() {
@@ -27,6 +29,10 @@ export class Time {
     }
 }
 
+/**
+ * ReadOblyTime class. You can use it in GameObject to get some time utils
+ * @class ReadOnlyTime
+ */
 
 
 export class ReadOnlyTime {
@@ -36,9 +42,19 @@ export class ReadOnlyTime {
         this.#time = time;
     }
 
+    /**
+     * Returns time in seconds between last iteration of game loop and current moment
+     * @returns {Number}
+     */
+
     deltaTime() {
         return this.#time.deltaTime();
     }
+
+    /**
+     * Returns time in seconds after moment of scene loaded
+     * @returns {Number}
+     */
 
     timeAfterSceneLoaded() {
         return this.#time.timeAfterSceneLoaded();

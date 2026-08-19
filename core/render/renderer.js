@@ -1,5 +1,7 @@
-import { Vector } from "./math/vector.js";
-import { Camera, GameObject } from './gameObject.js';
+import { Vector } from '../math/index.js';
+import { GameObject } from '../entities/gameObject.js';
+import { Camera } from "../modules/main/camera.js";
+import { UiObject } from '../entities/uiObject.js';
 
 export class RendererQueue {
     #objects;
@@ -13,23 +15,6 @@ export class RendererQueue {
             throw new TypeError("You can only add game objects that inherit from GameObject");
         }
 
-        // if (this.#objects.length == 0) {
-        //     this.#objects.push(object);
-        //     return;
-        // }
-
-        // for (let x=0; x<this.#objects.length; x++) {
-        //     if (x == this.#objects.length-1) {
-        //         this.#objects.push(object);
-        //         break;
-        //     }
-
-        //     if (this.#objects[x+1].renderLayer >= object.renderLayer) {
-        //         this.#objects.splice(x+1, 0, object);
-        //         break;
-        //     }
-        // }
-
         let ind = this.#objects.findIndex(x => x.renderLayer < object.renderLayer);
 
         if (ind === -1) {
@@ -37,26 +22,10 @@ export class RendererQueue {
         } else {
             this.#objects.splice(ind, 0, object);
         }
-
-        // this.#objects.push(object);
     }
-
-    // minRenderLayerObjectId() {
-    //     let result = 0;
-
-    //     for (let x=0; x<this.#objects.length; x++) {
-    //         if (this.#objects[x].renderLayer < this.#objects[result].renderLayer) result = x;
-    //     }
-
-    //     return result;
-    // }
 
     pop() {
         if (this.#objects.length == 0) return null;
-
-        // let nextId = this.minRenderLayerObjectId();
-        // let nextObject = this.#objects[nextId];
-        // this.#objects.splice(nextId, 1);
 
         let result = this.#objects[this.#objects.length-1];
         this.#objects.splice(this.#objects.length-1, 1);
@@ -151,10 +120,6 @@ export class Renderer {
     worldToScreenPosition(vector, uiSpace = false) {
         // Отображение вектора условных единиц в вектор пикселей (положение в пространстве)
 
-        // const s = this.scale;
-        // return new Vector(vector.x * s, vector.y * s)
-
-
         // Если нет активной камеры, либо если нужны координаты в пространстве ui, принимаем за камеру центр мира (0, 0)
         if (this.#workingCamera == null || uiSpace == true) return new Vector(vector.x * this.scale, vector.y * this.scale);
 
@@ -178,15 +143,6 @@ export class Renderer {
 
         return this.#workingCamera.getModule(Camera).worldToScreenRotation(deg) * Math.PI/180;
     }
-
-    // drawRect(position, size, color, uiSpace=false) {
-    //     this.#ctx.fillStyle = color;
-
-    //     const screenPos  = this.worldToScreen(position, uiSpace);
-    //     const screenSize = new Vector(size.x * this.scale, size.y * this.scale);
-
-    //     this.#ctx.fillRect(screenPos.x, screenPos.y, screenSize.x, screenSize.y);
-    // }
 
     translateCtx(screenPos) {
         this.#ctx.translate(screenPos.x, screenPos.y);
@@ -299,60 +255,3 @@ export class Renderer {
     }
 }
 
-export class RendererWorker {
-    // Специальный воркер рендера, который по сути является прокси классом для предоставления безопасного доступа только к определенным методам.
-    // Также обладает методами для обеспечения временного доступа к себе
-
-    #originalRenderer;
-    #uiSpace;
-
-    constructor(original, uiSpace=false) {
-        this.#originalRenderer = original; // Основной рендерер
-        this.#uiSpace = uiSpace; // true если этот рендерер обрабатывает ui объект. Просто передаем этот же флаг в вызовах методов renderer
-    }
-
-    destroy() {
-        // Для безопасного прекращения работы удаляем ссылку на основной рендерер
-        // Убивать воркер нужно после вызова onRender у объекта, чтобы в дальнейшем объект не мог пользоваться им вне этого метода
-
-        this.#originalRenderer = null;
-    }
-
-    isAlive() {
-        return this.#originalRenderer != null;
-    }
-
-    // drawRect(position, size, color) {
-    //     if (!this.isAlive()) throw Error("Renderer worker is no longer available. You can use renderer only in GameObject.onRender()")
-    //     this.#originalRenderer.drawRect(position, size, color, this.#uiSpace);
-    // }
-
-    aliveCheck() {
-        if (!this.isAlive()) throw Error("Renderer worker is no longer available. You can use renderer only in GameObject.onRender()")
-    }
-
-    drawRect(gameObject, color, fill=true, dotted=false,) {
-        this.aliveCheck();
-        this.#originalRenderer.drawRect(gameObject, color, fill, dotted, this.#uiSpace);
-    }
-
-    drawEllipse(gameObject, color, startAngle=0, endAngle=360) {
-        this.aliveCheck();
-        this.#originalRenderer.drawEllipse(gameObject, color, startAngle, endAngle, this.#uiSpace);
-    }
-
-    drawImage(gameObject, img) {
-        this.aliveCheck();
-        this.#originalRenderer.drawImage(gameObject, img, this.#uiSpace);
-    }
-
-    drawImage(gameObject, img, sx, sy, sw, sh) {
-        this.aliveCheck();
-        this.#originalRenderer.drawImage(gameObject, img, sx, sy, sw, sh, this.#uiSpace);
-    }
-
-    drawText(gameObject, font, text, size) {
-        this.aliveCheck();
-        this.#originalRenderer.drawText(gameObject, font, text, size, this.#uiSpace);
-    }
-}

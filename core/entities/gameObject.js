@@ -1,9 +1,11 @@
-import { EventQueue } from "./game.js";
-import { Event } from "./game.js";
-import { Vector } from "./math/vector.js";
-import { ReadOnlyTime } from "./time.js";
-import { App, GameContext } from './game.js';
-import { getZoneTypes, Zone } from './zones.js';
+import { EventQueue } from "../utils/eventQueue.js";
+import { Event } from "../event.js";
+import { Vector } from "../math/vector.js";
+import { ReadOnlyTime } from "../utils/time.js";
+import { GameContext } from '../utils/gameContext.js';
+import { getZoneTypes, Zone } from './zones/index.js';
+import { Module } from './module.js';
+import { RendererWorker } from "../render/rendererWorker.js";
 
 class ObjectDestroyEvent extends Event {
     constructor(creator) {
@@ -26,6 +28,11 @@ class ModuleStartEvent extends Event { // Ивент для старта мод�
     }
 }
 
+/**
+ * Game object class
+ * @class GameObject
+ */
+
 export class GameObject {
     #eventQueue;
     #modules;
@@ -39,6 +46,18 @@ export class GameObject {
     #_initState
     #isActive = true
     #zones;
+
+    /**
+     * 
+     * @param {Vector} position - object position (Optional)
+     * if not provided uses default (0, 0) position
+     * @param {Number} rotation - Object rotation (Optional)
+     * if not provided uses default 0
+     * @param {Vector} size - Object size (Optional)
+     * if not provided uses default (0.01, 0.01) size
+     * @param {Vector} scale - Object scale (Optional)
+     * if not provided uses default (1, 1) scale 
+     */
 
     constructor(position=new Vector(0, 0), rotation=0, size = new Vector(0.01, 0.01), scale=new Vector(1, 1)) {
         this.transform = {
@@ -61,36 +80,60 @@ export class GameObject {
         this.#zones = new Map();
     }
 
+    /**
+     * Makes object be active or not. If object not active, it will not participate in game loop
+     * @param {boolean} isActive 
+     */
+
     setActive(isActive) {
         this.#isActive = isActive;
     }
 
+    /**
+     * Indicates if object is active or not
+     */
+
     get isActive() {
         return this.#isActive;
     }
+
+    /**
+     * Indicates if object changed its position after last game loop iteration or not
+     * @returns {boolean}
+     */
 
     isPositionChanged() {
         if (this.#oldWorldPosition == undefined) return false;
         return (this.#oldWorldPosition.x != this.worldPosition.x || this.#oldWorldPosition.y != this.worldPosition.y);
     }
 
-    // get oldTransform() { // Старый transform с предыдущей итерации loop
-    //     return this.#oldTransform;
-    // }
-
     get oldWorldPosition() {
         return this.#oldWorldPosition;
     }
+
+    /**
+     * Sets new render layer id
+     * @param {Number} layerId - layer id. The smaller the number, the earlier object will be rendered
+     */
 
     set renderLayer(layerId) {
         if (!Number.isInteger(layerId)) throw TypeError("layerId in GameObject.renderLayer must be integer");
 
         this.#renderLayer = layerId;
     }
+    
+    /**
+     * Returns current render layer
+     */
 
     get renderLayer() {
         return this.#renderLayer;
     }
+
+    /**
+     * Returns object world position. World position means position of game object according to all parents positions
+     * @returns {Vector}
+     */
 
     get worldPosition() { // Позиция объекта в мире (позиция родителя + собственная позиция)
         if (this.#parent == null) return this.transform.position.copy();
@@ -101,6 +144,11 @@ export class GameObject {
         return result;
     }
 
+    /**
+     * Returns object world scale. World scale means scale of game object according to all parents scales
+     * @returns {Vector}
+     */
+
     get worldScale() {
         if (this.#parent == null) return this.transform.scale.copy();
 
@@ -108,10 +156,13 @@ export class GameObject {
         result.x *= this.transform.scale.x;
         result.y *= this.transform.scale.y;
 
-        return result;
-
-        
+        return result;  
     }
+
+    /**
+     * Returns object world size. World position means size of game object according to all parents scales and objects own scale
+     * @returns {Vector}
+     */
 
     get worldSize() {
         if (this.#parent == null) return new Vector(this.transform.size.x*this.transform.scale.x, this.transform.size.y*this.transform.scale.y);
@@ -124,6 +175,11 @@ export class GameObject {
         return result;
     }
 
+    /**
+     * Returns object world rotation. World rotation means rotation of game object according to all parents rotations
+     * @returns {Number}
+     */
+
     get worldRotation() {
         if (this.#parent == null) return this.transform.rotation;
 
@@ -133,9 +189,19 @@ export class GameObject {
         return result;
     }
 
+    /**
+     * Returns array of object children
+     * @returns {Array}
+     */
+
     get children() { // Возвращает копию списка детей
         return this.#children.slice();
     }
+
+    /**
+     * Returns object parent
+     * @returns {GameObject}
+     */
 
     get parent() {
         return this.#parent;
@@ -149,6 +215,11 @@ export class GameObject {
         this.#parent = null;
     }
 
+    /**
+     * Sets new parent
+     * @param {GameObject} parent
+     */
+
     setParent(parent) { // Устанавливем родятеля объекту
         if (this.#parent == parent) return;
 
@@ -158,6 +229,11 @@ export class GameObject {
 
         parent.addChild(this);
     }
+
+    /**
+     * Adds new child
+     * @param {GameObject} gameObject 
+     */
 
     addChild(gameObject) { // Добавляем объекту ребёнка
         if (!(gameObject instanceof GameObject)) throw TypeError("You can only add child that is inherit of GameObject at GameObject.addChild");
@@ -170,6 +246,11 @@ export class GameObject {
         gameObject.transform.position = new Vector(gameObject.worldPosition.x - this.worldPosition.x, gameObject.worldPosition.y - this.worldPosition.y);
         gameObject._attachParent(this);
     }
+
+    /**
+     * Removes existing child by link
+     * @param {GameObject} child
+     */
 
     removeChild(child) { // Удаление дочернего объекта. По объекту
         if (!(child instanceof GameObject)) throw TypeError("Argument of GameObject.removeChild(child) child must be GameObject as GameObject that is child that should be removed");
@@ -184,6 +265,11 @@ export class GameObject {
             
     }
 
+    /**
+     * Removes existing child by index
+     * @param {Number} index  
+     */
+
     removeChildAt(index) { // Удаление дочернего объекта. По индексу
         if (!Number.isInteger(index)) throw TypeError("Argument index in GameObject.removeChildAt(index) must be integer");
 
@@ -197,11 +283,20 @@ export class GameObject {
         this.#children.splice(index, 1); // Удаляем из списка 
     }
 
+    /**
+     * Removes all children
+     */
+
     clearChildren() { // Удаляет всех детей
         this.#children.slice().forEach(child => {
             this.removeChild(child);
         });
     }
+
+    /**
+     * Indicates if object is descendant of gameObject
+     * @param {GameObject} gameObject
+     */
 
     isDescendantOf(gameObject) { // Проверка, является ли объект потомком объекта
         let current = this.parent;
@@ -214,25 +309,47 @@ export class GameObject {
         return false;
     }
 
+    /**
+     * Called when the object is initialized and added to the game loop
+     * Override this method to implement custom logic
+     */
+
     start() {
         // Вызывается при инициализации объекта, как только он встраивается в игровой цикл
     }
+
+    /**
+     * Calles every game loop iteration if object is active and added to the active scene
+     * Override it to implement custom logic
+     */
 
     loop() {
         // Вызывается каждую итерацию игрового цикла
     }
 
+    /**
+     * Calles when object removed from active scene if object is active
+     * Override it to implement custom logic
+     */
+
     onDestroy() {
         // Вызывается при удалении объекта из игрового цикла
     }
 
+    /**
+     * Removes object from scene. After destroying, onDestroy() method will be called
+     */
+
     destroy() {
         // Если хотим удалить элемент, кладём ивент удаления в очередь ивентов, которую затем обработает Game
-        
-    
-
         this.createEvent(new ObjectDestroyEvent(this));
     }
+
+    /**
+     * Adds new module
+     * @param {Module} module 
+     * @returns {Module} - added module
+     */
 
     addModule(module) {
         if (!(module instanceof Module)) throw TypeError("You can only add inherit of [Module]");
@@ -264,9 +381,19 @@ export class GameObject {
         this.#time = time;
     }
 
+    /**
+     * Returns object to work with time utils
+     * @returns {ReadOnlyTime}
+     */
+
     get time() {
         return this.#time;
     }
+    
+    /**
+     * Creates new event that will be proccesed after game loop iteration
+     * @param {Event} event 
+     */
 
     createEvent(event) {
         if (this.#eventQueue == null || this.#eventQueue === undefined) throw Error("You can not create events until scene did not initialized GameObject");
@@ -289,22 +416,22 @@ export class GameObject {
     }
 
     loopAll() {
-        // this.#oldTransform = {
-        //     position: this.transform.position.copy(),
-        //     rotation: this.transform.rotation.copy(),
-        //     scale: this.transform.scale.copy()
-        // }
         this.worldPosition.copyTo(this.#oldWorldPosition); // Сохраняем текущую позицию в мире как старую
-        //this.#oldWorldPosition = this.worldPosition.copy();
         this.proccessModules();
         this.loop();
     }
+
+    /**
+     * Returns existing module by its type
+     * @param {typeof Module} type 
+     * @returns {Module}
+     */
 
     getModule(type) {
         return this.#modules.find(m => m instanceof type);
     }
 
-    set gameContext(_gameContext) { // Сеттер для сцены. App устанавливается каждый раз когда объект добавляется на сцену
+    set gameContext(_gameContext) {
         if (!(_gameContext instanceof GameContext)) throw TypeError("GameContext must be inherit of paw.GameContext");
 
         this.#gameContext = _gameContext;
@@ -322,9 +449,20 @@ export class GameObject {
         this.onRender(renderer);
     }
 
+    /**
+     * Calls every game loop iteration to procces render logic.
+     * Override this method to work with renderer worker and render some staff
+     * @param {RendererWorker} renderer 
+     */
+
     onRender(renderer) {
 
     }
+
+    /**
+     * Calls when scene becomes not active
+     * Override this method to implement your own logic
+     */
 
     onSceneCanceled() {
         // Вызывается когда сцена на котором находится объект перестает быть активной
@@ -340,10 +478,22 @@ export class GameObject {
         });
     }
 
+    /**
+     * Returns array of all active zones by type
+     * @param {Number} zoneType 
+     * @returns {Array}
+     */
+
     getZones(zoneType) {
         let zones = this.#zones.get(zoneType);
         return (zones != undefined) ? zones : [];
     }
+
+    /**
+     * Adds new zone
+     * @param {Number} zoneType 
+     * @param {Zone} zone 
+     */
 
     addZone(zoneType, zone) {
         if (!(zone instanceof Zone)) throw Error("You can only add object as zone if it is instance of paw.Zone");
@@ -360,125 +510,3 @@ export class GameObject {
     }
 }
 
-// UiObject как отдельный вид gameObject'a. Нужен чтобы сцена отличала ui объекты от игровых и выдавала нужный worker рендера, 
-// в остальном ничем не отличаются
-
-export class UiObject extends GameObject{
-    #clickZone;
-
-    constructor(position=new Vector(0, 0), rotation=new Vector(0, 0), scale=new Vector(0.01, 0.01)) {
-        super(position, rotation, scale);
-    }
-
-    onClick() {}
-    onHover() {}
-    onHold() {}
-}
-
-export class Module {
-    #owner;
-    #isLoaded;
-    #_initState;
-    #isActive = true;
-
-    constructor() {
-    }
-
-    setActive(isActive) {
-        this.#isActive = isActive;
-    }
-
-    get isActive() {
-        return this.#isActive;
-    }
-
-    start() {}
-
-    loop() {}
-
-    onDestroy() {}
-
-    remove() {}
-
-    get owner() {
-        return this.#owner;
-    }
-
-    set owner(owner) {
-        if (!(owner instanceof GameObject)) throw TypeError("You can only set object as Module owner if it inherit of GameObject");
-
-        this.#owner = owner;
-    }
-
-    get isLoaded() {
-        return this.#isLoaded;   
-    }
-
-    onRender(renderer) {
-
-    }
-
-    onSceneCanceled() {
-
-    }
-}
-
-export class Camera extends Module {
-    #zoom;
-    #background_color;
-
-    constructor(background_color="white", zoom=1) {
-        super();
-        this.#zoom = zoom;
-        this.#background_color = background_color;
-    }
-
-    // worldToScreenPosition(vector, screenScale, worldSize) {
-    //     // Переводит позицию из условных единиц в пиксели с учетом позиции камеры
-
-    //     // return new Vector((vector.x - this.owner.transform.position.x + worldSize.x/2) * screenScale, (vector.y - this.owner.transform.position.y + worldSize.y/2) * screenScale);
-    //     let result = new Vector((vector.x - this.owner.worldPosition.x + worldSize.x/this.#zoom/2) * screenScale * this.#zoom, (vector.y - this.owner.worldPosition.y + worldSize.y/this.#zoom/2) * screenScale * this.#zoom)
-    //     return result;
-    // }
-
-    get background_color() {
-        return this.#background_color;
-    }
-
-    set background_color(background_color) {
-        this.#background_color = background_color;
-    }
-
-    worldToScreenCoord(coord, screenScale) {
-        return coord * screenScale * this.#zoom;
-    }
-
-    worldToScreenPosition(vector, screenScale, worldSize) {
-        const dx = vector.x - this.owner.worldPosition.x;
-        const dy = vector.y - this.owner.worldPosition.y;
-
-        const angle = -this.owner.worldRotation * Math.PI / 180;
-        const cos = Math.cos(angle);
-        const sin = Math.sin(angle);
-
-        const rotatedX = dx * cos - dy * sin;
-        const rotatedY = dx * sin + dy * cos;
-
-        const screenX = (rotatedX + worldSize.x / 2 / this.#zoom) * screenScale * this.#zoom;
-        const screenY = (rotatedY + worldSize.y / 2 / this.#zoom) * screenScale * this.#zoom;
-
-        return new Vector(screenX, screenY);
-    }
-
-    worldToScreenSize(vector, screenScale) {
-        // Переводит размер из условных единиц в пиксели с учетом зума камеры
-
-        return new Vector(vector.x * screenScale * this.#zoom, vector.y * screenScale * this.#zoom);
-    }
-
-    worldToScreenRotation(deg) {
-        // Считает поворот в градусах с учетом поворота камеры
-
-        return deg - this.owner.worldRotation;
-    }
-}

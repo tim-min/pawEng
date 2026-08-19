@@ -10,20 +10,20 @@ function btnClicked(button_color) {
 
     let menu = game.createScene("menu");
 
-    let gameName = new paw.UiObject();
-    gameName.addModule(new paw.Text());
-    gameName.getModule(paw.Text).text = "Hello world";
-    gameName.getModule(paw.Text).size = 10;
+    let gameName = new paw.entities.UiObject();
+    gameName.addModule(new paw.modules.render.UI.Text());
+    gameName.getModule(paw.modules.render.UI.Text).text = "Hello world";
+    gameName.getModule(paw.modules.render.UI.Text).size = 10;
     menu.addGameObject(gameName);
 
-    let greenButton = new paw.UiObject(new paw.Vector(50, 50), new paw.Vector(0, 0), new paw.Vector(20, 20));
-    greenButton.addModule(new paw.Button(new paw.Vector(20, 20), btnClicked, ['green']));
-    greenButton.addModule(new paw.Square('green'));
+    let greenButton = new paw.entities.UiObject(new paw.math.Vector(50, 50), new paw.math.Vector(0, 0), new paw.math.Vector(20, 20));
+    greenButton.addModule(new paw.modules.render.UI.Button(new paw.math.Vector(20, 20), btnClicked, ['green']));
+    greenButton.addModule(new paw.modules.render.Square('green'));
     menu.addGameObject(greenButton);
 
-    let redButton = new paw.UiObject(new paw.Vector(50, 50), new paw.Vector(0, 0), new paw.Vector(10, 10));
-    redButton.addModule(new paw.Button(new paw.Vector(10, 10), btnClicked, ['red']));
-    redButton.addModule(new paw.Square('red'));
+    let redButton = new paw.entities.UiObject(new paw.math.Vector(50, 50), new paw.math.Vector(0, 0), new paw.math.Vector(10, 10));
+    redButton.addModule(new paw.modules.render.UI.Button(new paw.math.Vector(10, 10), btnClicked, ['red']));
+    redButton.addModule(new paw.modules.render.Square('red'));
     menu.addGameObject(redButton);
 
 

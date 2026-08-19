@@ -1,4 +1,9 @@
-import { Module } from "../../gameObject.js";
+import { Module } from "../../entities/module.js";
+
+/**
+ * Animator state class
+ * @class AnimationState
+ */
 
 class AnimationState { // Структура для хранения этапа анимации. 
     constructor(timePoint, action) {
@@ -10,6 +15,12 @@ class AnimationState { // Структура для хранения этапа 
         this.played = false;
     }
 }
+
+/**
+ * Animation class
+ * @class Animation
+ */
+
 
 class Animation { // Анимация. Хранит и проигрывает этапы
     #states;
@@ -33,9 +44,19 @@ class Animation { // Анимация. Хранит и проигрывает э
         this.#name = name;
     }
 
+    /**
+     * Returns animation name
+     */
+
     get name() {
         return this.#name;
     }
+
+    /**
+     * Adds new state to animation
+     * @param {Number} timePoint - Animation state point in time line 
+     * @param {Function} action - Function that will be called in time point
+     */
 
     addState(timePoint, action) { // Добавляем новый этап и сразу считаем, не изменилась ли длительность анимации
         let newState = new AnimationState(timePoint, action);
@@ -44,9 +65,19 @@ class Animation { // Анимация. Хранит и проигрывает э
         if (timePoint > this.#duration) this.#duration = timePoint;
     }
 
+    /**
+     * Get animation duration
+     */
+
     get duration() {
         return this.#duration;
     }
+
+    /**
+     * Starts playing animation
+     * @param {Number} cycles - Play cycles count.
+     * If not provided, animation will be playing till you don't stop it
+     */
 
     play(cycles = -1) {
         if (!Number.isInteger(cycles)) throw new Error("cycles at Animation.play(cycles) must be int");
@@ -56,6 +87,10 @@ class Animation { // Анимация. Хранит и проигрывает э
 
         this._restore();
     }
+
+    /**
+     * Stops animation
+     */
 
     stop() {
         this.#cyclesToPlay = 0;
@@ -88,6 +123,11 @@ class Animation { // Анимация. Хранит и проигрывает э
     }
 }
 
+/**
+ * Animator module. Use it in GameObject or UiObject to create states loop and animations
+ * @class Animator
+ */
+
 export class Animator extends Module {
     #animations;
 
@@ -96,6 +136,12 @@ export class Animator extends Module {
         this.#animations = [];
     }
 
+    /**
+     * Creates new animation
+     * @param {string} name 
+     * @returns {Animation}
+     */
+
     addAnimation(name) {
         let newAnimation = new Animation(name);
         this.#animations.push(newAnimation);
@@ -103,18 +149,41 @@ export class Animator extends Module {
         return newAnimation;
     }
 
+    /**
+     * Returns existing animation by name
+     * @param {string} name 
+     * @returns {Animation}
+     */
+
     getAnimation(name) {
         return this.#animations.find(anim => anim.name == name);
     }
+
+    /**
+     * Plays existing animation by name
+     * @param {string} name 
+     * @param {Number} cycles - Play cycles count.
+     * If not provided, animation will be playing till you don't stop it
+     */
 
     play(name, cycles = -1) {
 
         this.#animations.find(anim => anim.name == name).play(cycles);
     }
 
+    /**
+     * Plays animation by name once
+     * @param {string} name 
+     */
+
     playOnce(name) {
         this.#animations.find(anim => anim.name == name).play(1);
     }
+
+    /**
+     * Stops animation by name
+     * @param {string} name 
+     */
 
     stop(name) {
         this.#animations.find(anim => anim.name == name).stop();

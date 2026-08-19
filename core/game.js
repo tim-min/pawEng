@@ -1,144 +1,21 @@
+/**
+ * @file Game. Основной класс, управляет игровым циклом, сценами
+ * @author tim-min
+ * @version 1.5.0
+ * @license GPL-3.0-or-later
+*/
+
+
+import * as utils from './utils/index.js';
+import * as controllers from './controllers/mouseController.js';
+import { Renderer } from "./render/renderer.js";
 import { Scene } from "./scene.js";
-import { GameObject, Camera } from "./gameObject.js";
-import { Time, ReadOnlyTime } from './time.js'
-import { Renderer, RendererWorker } from "./renderer.js";
-import { Vector } from './math/vector.js';
+import { App } from './app.js';
 
-
-export class Event {
-    #creator;
-
-    constructor(creator) {
-        // Ивент обязательно должен знать о своём создателе. Все ивенты работают в первую очередь с теми, кто их создал
-
-        if (!(creator instanceof GameObject)) throw TypeError("Event creator must be inherit of [GameObject]");
-
-        this.#creator = creator;
-    }
-
-    run(scene) {
-        // Тут прописывается функционал ивента. Также обязательно принимаем ссылку на сцену, которая обрабатывает этот ивент, иначе какой тогда смысл?
-    }
-
-    get creator() {
-        return this.#creator;
-    }
-}
-
-export class EventQueue {
-    // Очередь событий. Должна обязательно быть на активной сцене для обеспечения взаимодействия объектов со сценой. 
-    // Нельзя позволять каждому объекту знать о том, на какой сцене он сейчас находится, поэтому обрабатываем какие-то вещи только через отдельные события, 
-    // которые вызываются до циклов объектов
-
-    #events = [];
-
-    push(event) {
-        if (!(event instanceof Event)) throw TypeError("Event must be inherit of [Event]");
-
-        this.#events.push(event);
-    }
-
-    pop() {
-        let event = this.#events[0];
-        this.#events.splice(0, 1);
-
-        return event;
-    }
-}
-
-export class App {
-    #canvas
-    #ctx
-    #renderer
-
-    constructor(width, height, renderer, scale) {
-        this.#canvas = document.createElement('canvas');
-
-        this.#renderer = new renderer(this.#canvas, width, height);
-    }
-
-    get canvas() {
-        return this.#canvas;
-    }
-
-    destroy() {
-        this.#canvas.remove();
-    }
-
-    getRendererWorker() { // Создание нового прокси-рендерера
-        let newWorker = new RendererWorker(this.#renderer);
-        return newWorker;
-    }
-
-    getUiRendererWorker() { // Отдельный новый прокси-рендерер для ui объектов
-        let newWorker = new RendererWorker(this.#renderer, true);
-        return newWorker;
-    }
-
-    get renderer() {
-        return this.#renderer;
-    }
-}
-
-export class GameContext { // Прокси-класс от App. Дает безопасный доступ к основным переменным игрового мира, например размер
-    #app
-
-    constructor(app) {
-        this.#app = app;
-    }
-
-    get worldSize() {
-        return this.#app.renderer.worldSize;
-    }
-}
-
-class MouseController {
-    #app
-    #mouseClickFunctions
-
-    constructor(app) {
-        this.#app = app;
-        this.#mouseClickFunctions = [];
-
-        app.canvas.addEventListener("mousedown", this.mouseClickEvent.bind(this));
-    }
-
-    assertIsFunction(object, errorText) {
-        if (!(typeof object === "function")) throw new TypeError(errorText);
-    }
-
-    mouseClickEvent(event) {
-        const cvsWindow = this.#app.canvas.getBoundingClientRect();
-
-        const x = event.clientX - cvsWindow.left;
-        const y = event.clientY - cvsWindow.top;
-
-        let worldPos = this.#app.renderer.screenToWorld(new Vector(x, y));
-
-        this.#mouseClickFunctions.forEach(func => {
-            func(worldPos);
-        });
-    }
-
-    bindMouseClickFunction(func) {
-        this.assertIsFunction(func, "Argument func must be a function in KeyController.bindMouseClickFunction(func)");
-
-        const funcIndex = this.#mouseClickFunctions.indexOf(func);
-        if (funcIndex !== -1) return;
-
-        this.#mouseClickFunctions.push(func);
-    }
-
-    unbindMouseClickFunction(func) {
-        this.assertIsFunction(func, "Argument func must be a function in KeyController.unbindMouseClickFunction(func)");
-
-        const funcIndex = this.#mouseClickFunctions.indexOf(func);
-
-        if (funcIndex !== -1) {
-            this.#mouseClickFunctions.splice(funcIndex, 1);
-        }
-    }
-}
+/**
+ * Main engine class. Use it to init your game and work with other systems
+ * @class Game
+ */
 
 export class Game {
     #windowRatio
@@ -153,6 +30,13 @@ export class Game {
     #resizeHandler = null;
     #mouseController = null;
 
+    /**
+     * 
+     * @param {Number} windowRatio - aspect ratio of the game window (e.g., 16/9).
+     * @param {function(new:Renderer)} renderer - the renderer class to instantiate.
+     * if not provided, uses the default Renderer class.
+     */
+
     constructor(windowRatio, renderer=Renderer) {
         this.#windowRatio = windowRatio;
         this.#app = null;
@@ -164,6 +48,10 @@ export class Game {
 
         this.#renderer = renderer;
     }
+
+    /**
+     * Inits game
+     */
 
     async init() {
         this.stop();
@@ -177,17 +65,17 @@ export class Game {
         await this.#initCvs();
 
         // Создаем очередь событий. Будем очищать её при каждой смене сцены
-        this.#eventQueue = new EventQueue();
+        this.#eventQueue = new utils.EventQueue();
 
         // Создаем объект отвечающий за время
-        this.#time = new Time();
-        this.#readOnlyTime = new ReadOnlyTime(this.#time);
+        this.#time = new utils.time.Time();
+        this.#readOnlyTime = new utils.time.ReadOnlyTime(this.#time);
 
         // Запуск игрового цикла
         this.#animationFrameId = requestAnimationFrame(() => this.#gameLoop());
 
         // Инициализация контроллера нажатий
-        this.#mouseController = new MouseController(this.#app);
+        this.#mouseController = new controllers.MouseController(this.#app);
     }
 
     #getCvsSize() {
@@ -283,6 +171,10 @@ export class Game {
         }
     }
 
+    /**
+     * Stops all work
+     */
+
     destroy() {
         this.stop();
         if (this.#resizeHandler) {
@@ -307,12 +199,23 @@ export class Game {
         }
     }
 
+    /**
+     * Creates a new scene
+     * @param {string} name - The name of your new scene
+     * @returns {Scene} Created scene object
+     */
+
     createScene(name) {
         let scene = new Scene(name);
         this.#scenes.push(scene);
 
         return scene;
     }
+
+    /**
+     * Loads existing scene
+     * @param {string} name - The name of your created scene, that you want to load
+     */
 
     async loadScene(name) {
         // Загружаем новую активную сцену по её имени. Предполагается, что сначала создали сцену (createScene), а уже потом можно её загрузить, 
@@ -337,18 +240,23 @@ export class Game {
         this.#time.sceneLoaded();
     }
 
+    /**
+     * Returns active scene
+     * @returns {Scene}
+     */
+
     get activeScene() {
         return this.#activeScene;
     }
 
     setCamera(cameraObject) {
-        // if (!(cameraObject instanceof GameObject)) throw new Error("Camera object must be instance of paw.GameObject");
-        // if (cameraObject.getModule(Camera) == undefined) throw new Error("Camera object mus contain Camera module");
-
-        // this.#app.renderer.linkCamera(cameraObject);
-
         console.log("WARNING: setCamera moved to scene, use scene.setCamera(cameraObject) to link new camera to each scene instead")
     }
+
+    /**
+     * Returns active mouse controller
+     * @returns {MouseController}
+     */
 
     get mouseController() {
         return this.#mouseController;

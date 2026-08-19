@@ -1,14 +1,7 @@
-export { GameObject, Module, Camera, UiObject } from './core/gameObject.js';
-export { Vector } from './core/math/vector.js';
 export { Scene } from './core/scene.js';
-export { Renderer } from './core/renderer.js'
-export { Square } from './core/modules/render/square.js'; 
-export { Ellipse } from './core/modules/render/ellipse.js';
-export { ImageRenderer } from './core/modules/render/ui/image.js'; 
-export { Sprite } from './core/modules/render/sprite.js'; 
-export { Animator } from './core/modules/main/animator.js'; 
-export { Text } from './core/modules/render/ui/text.js';
-export { Button } from './core/modules/render/ui/button.js';
-export { Zone, SquareZone, CircleZone } from './core/zones.js';
 export { Game } from './core/game.js';
 
+export * as entities from './core/entities/index.js';
+export * as math from './core/math/index.js';
+export * as modules from './core/modules/index.js';
+export * as utils from './core/utils/index.js';

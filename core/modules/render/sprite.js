@@ -1,4 +1,9 @@
-import { Module } from "../../gameObject.js";
+import { Module } from "../../entities/module.js";
+
+/**
+ * Sprite module. Use it in GameObject or UiObject to create sprite
+ * @class Sprite
+ */
 
 
 export class Sprite extends Module {
@@ -10,6 +15,13 @@ export class Sprite extends Module {
     #columns
     #frameWidth
     #frameHeight
+
+    /**
+     * 
+     * @param {string} src - src of sprite sheet image 
+     * @param {Number} columns - sprite sheet columns count 
+     * @param {Number} rows - sprite sheet rows count
+     */
 
     constructor(src, columns, rows) {
         super();
@@ -32,10 +44,21 @@ export class Sprite extends Module {
         this.#columns = columns
     }
 
+    /**
+     * Changes current sprite sheet frame
+     * @param {Number} x - Frame column
+     * @param {Number} y - Frame row
+     */
+
     setCurrentFrame(x, y) {
         this.#currentFrame.x = x;
         this.#currentFrame.y = y;
     }
+
+    /**
+     * Returns current frame
+     * @returns { {x: Number, y: Number} } - Current frame coords.
+     */
 
     get currentFrame() {
         return this.#currentFrame
