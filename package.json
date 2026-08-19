@@ -1,0 +1,26 @@
+{
+  "name": "paw-engine",
+  "version": "1.5.4",
+  "type": "module",
+  "main": "pawEng.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tim-min/pawEng.git"
+  },
+  "files": [
+    "core/",
+    "README.md",
+    "pawEng.js",
+    "LICENSE",
+    "examples/"
+  ],
+  "keywords": [
+    "js",
+    "game",
+    "game-engine",
+    "engine",
+    "canvas"
+  ],
+  "author": "tim-min",
+  "license": "LGPL-3.0-or-later"
+}
