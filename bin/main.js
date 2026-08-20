@@ -66,8 +66,8 @@ function nwInstalled() {
     return true;
 }
 
-function checkFolder(path) {
-    if (existsSync(path) && statSync(path).isFile())
+function checkFolder(_path) {
+    if (existsSync(_path) && statSync(_path).isFile())
         return false;
 
     return true;
@@ -98,11 +98,15 @@ function fixPackageJson(content, gameName) {
     return fixed;
 }
 
-
 function getJsonFromFile(src) {
     const file = readFileSync(src, 'utf8');
     
     return JSON.parse(file);
+}
+
+function checkIcon() {
+    let icoPath = path.join(workDir, 'icon.ico');
+    return (existsSync(icoPath) && statSync(icoPath).isFile())
 }
 
 async function buildExecutable(args) {
@@ -143,6 +147,9 @@ async function buildExecutable(args) {
             console.warn(`\n${colors.red}[!]${colors.reset} package.json does not have a 'main' or 'name' fields for nw-builder, so it will be selected by default 'index.html' and your game name`);
             writeFileSync(path.join(webBuildDirPath, 'package.json'), JSON.stringify(packageJsonContent, null, 2));
         }
+
+        if (!checkIcon()) 
+            console.warn(`\n${colors.red}[!]${colors.reset} It is advisable to add icon.ico to the root of the project`);
 
         await nwbuild({
             srcDir: webBuildDirPath,
