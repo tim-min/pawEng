@@ -1,4 +1,4 @@
-import * as paw from '../../pawEng.js'
+import * as paw from 'paw-engine'
 import Cat from './cat.js'
 import Field from './field.js'
 

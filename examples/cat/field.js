@@ -1,4 +1,4 @@
-import * as paw from '../../pawEng.js'
+import * as paw from 'paw-engine';
 
 export default class Field extends paw.entities.GameObject {
     constructor(position, rotation, scale, color) {

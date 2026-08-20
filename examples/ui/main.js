@@ -1,4 +1,4 @@
-import * as paw from '../../pawEng.js'
+import * as paw from 'paw-engine';
 
 function btnClicked(button_color) {
     alert(`${button_color} button clicked!`);
