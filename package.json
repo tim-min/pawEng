@@ -1,6 +1,6 @@
 {
   "name": "paw-engine",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "type": "module",
   "main": "pawEng.js",
   "repository": {
