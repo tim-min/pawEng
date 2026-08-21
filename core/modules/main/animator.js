@@ -28,7 +28,9 @@ class Animation { // Анимация. Хранит и проигрывает э
     #name;
     #timePassed;
     #cyclesToPlay;
+    #currentState;
     #playInf;
+    #currentStateId;
 
     constructor(name) {
         if (typeof name !== "string") throw new Error("Animation.name must be a string");
@@ -42,6 +44,8 @@ class Animation { // Анимация. Хранит и проигрывает э
         this.#timePassed = 0;
 
         this.#name = name;
+
+        this.#currentStateId = 0;
     }
 
     /**
@@ -63,6 +67,8 @@ class Animation { // Анимация. Хранит и проигрывает э
         this.#states.push(newState);
 
         if (timePoint > this.#duration) this.#duration = timePoint;
+
+        this.#states.sort((a, b) => a.timePoint - b.timePoint);
     }
 
     /**
@@ -82,8 +88,12 @@ class Animation { // Анимация. Хранит и проигрывает э
     play(cycles = -1) {
         if (!Number.isInteger(cycles)) throw new Error("cycles at Animation.play(cycles) must be int");
 
+
         if (cycles == -1) this.#playInf = true;
-        else cyclesToPlay = cycles;
+        else {
+            this.#playInf = false;
+            this.#cyclesToPlay = cycles;
+        }
 
         this._restore();
     }
@@ -100,22 +110,23 @@ class Animation { // Анимация. Хранит и проигрывает э
     _restore() {
         this.#timePassed = 0;
         this.#states.forEach(state => {state.played = false;});
+        this.#currentStateId = 0;
     }
 
     playLoop(time) {
         if (this.#playInf || this.#cyclesToPlay > 0) {
             this.#timePassed += time.deltaTime() * 1000;
 
-            this.#states.forEach(state => {
-                if (state.played) return;
+            while (this.#currentStateId < this.#states.length && this.#states[this.#currentStateId].timePoint <= this.#timePassed) {
+                let state = this.#states[this.#currentStateId];
 
-                if (state.timePoint <= this.#timePassed) {
-                    state.played = true;
-                    state.action();
-                }
-            });
+                state.played = true;
+                state.action();
+            
+                this.#currentStateId++; 
+            }
 
-            if (this.#states.every(state => (state.played == true))) {
+            if (this.#currentStateId >= this.#states.length) {
                 this.#cyclesToPlay -= 1;
                 this._restore();
             }

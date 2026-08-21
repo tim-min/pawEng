@@ -27,10 +27,8 @@ export class Vector {
         if (!(other instanceof Vector)) 
             throw new TypeError("Argument 'other' must be instance of Vector");
 
-        let other_values = other.values();
-
-        this.#x += other_values[0];
-        this.#y += other_values[1];
+        this.#x += other.x;
+        this.#y += other.y;
     }
 
     /**
@@ -43,17 +41,18 @@ export class Vector {
         if (!(other instanceof Vector)) 
             throw new TypeError("Argument 'other' must be instance of Vector");
 
-        return sqrt(abs(this.x-other.x)+abs(this.y-other.y));
+        const dx = this.#x - other.x;
+        const dy = this.#y - other.y;
+        
+        return Math.sqrt(dx * dx + dy * dy);
     }
 
     /**
      * Returns vector values in array
-     * @returns {Array}
+     * @returns { x: Number, y: Number }
      */
 
-    values() {
-        return [this.#x, this.#y];
-    }
+    values() { return { x: this.#x, y: this.#y }; }
 
     /**
      * Returns copy
@@ -80,31 +79,23 @@ export class Vector {
      * Gets vector x
      */
 
-    get x() {
-        return this.#x;
-    }
+    get x() { return this.#x; }
 
     /**
      * Gets vector y
      */
 
-    get y() {
-        return this.#y;
-    }
+    get y() { return this.#y; }
 
     /**
      * Sets new x
      */
 
-    set x(newX) {
-        this.#x = newX;
-    }
+    set x(newX) { this.#x = newX; }
 
     /**
      * Sets new y
      */
 
-    set y(newY) {
-        this.#y = newY;
-    }
+    set y(newY) { this.#y = newY; }
 }
